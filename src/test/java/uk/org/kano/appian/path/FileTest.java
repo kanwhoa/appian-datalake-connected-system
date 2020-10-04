@@ -1,0 +1,156 @@
+package uk.org.kano.appian.path;
+
+import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
+import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
+import org.junit.Before;
+import org.junit.Test;
+import uk.org.kano.appian.Constants;
+import uk.org.kano.appian.TestBase;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
+public class FileTest extends TestBase {
+    private Create pathCreate = new Create();
+    private Delete pathDelete = new Delete();
+    private GetProperties pathGetProperties = new GetProperties();
+    private Update pathUpdate = new Update();
+    private Rename pathRename = new Rename();
+    private String fileName1 = "/example1.csv";
+    private String fileName2 = "/example2.csv";
+
+    @Before
+    public void preClean() {
+        SimpleConfiguration integrationConfiguration;
+        Map<String, Object> values;
+
+        integrationConfiguration = getIntegrationConfiguration(pathDelete);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        values.put(Constants.SC_ATTR_RECURSIVE, Boolean.TRUE);
+        setValues(integrationConfiguration, values);
+        pathDelete.execute(integrationConfiguration, connectedSystemConfiguration, null);
+    }
+
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void basicOperations_File_Success() {
+        SimpleConfiguration integrationConfiguration;
+        Map<String, Object> values;
+        IntegrationResponse response;
+
+        // Create an empty file
+        integrationConfiguration = getIntegrationConfiguration(pathCreate);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        values.put(Constants.SC_ATTR_FILE, Boolean.TRUE);
+        values.put(Constants.SC_ATTR_OVERWRITE, Boolean.TRUE);
+        setValues(integrationConfiguration, values);
+
+        response = pathCreate.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("201"));
+
+        // Check the file exists
+        integrationConfiguration = getIntegrationConfiguration(pathGetProperties);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        setValues(integrationConfiguration, values);
+
+        response = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+
+        // Upload some content to the file
+        String data1 = "\"Column 1\"\n\"Example data\"\n";
+        int data1Len = data1.getBytes(StandardCharsets.UTF_8).length;
+        integrationConfiguration = getIntegrationConfiguration(pathUpdate);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        values.put(Constants.SC_ATTR_OVERWRITE, true);
+        values.put(Constants.SC_ATTR_CONTENT, data1);
+        setValues(integrationConfiguration, values);
+
+        response = pathUpdate.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+
+        // Get the file properties and check it is the right length
+        integrationConfiguration = getIntegrationConfiguration(pathGetProperties);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        setValues(integrationConfiguration, values);
+
+        response = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+        assertThat(Integer.parseInt(response.getResult().get("length").toString()), equalTo(data1Len));
+
+        // Append some more data to the file
+        String data2 = "\"テストデータ\"\n";
+        int data2Len = data2.getBytes(StandardCharsets.UTF_8).length;
+        integrationConfiguration = getIntegrationConfiguration(pathUpdate);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        values.put(Constants.SC_ATTR_OVERWRITE, false);
+        values.put(Constants.SC_ATTR_CONTENT, data2);
+        setValues(integrationConfiguration, values);
+
+        response = pathUpdate.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+
+        // Get the file properties and check it is the right length
+        integrationConfiguration = getIntegrationConfiguration(pathGetProperties);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        setValues(integrationConfiguration, values);
+
+        response = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+        assertThat(Integer.parseInt(response.getResult().get("length").toString()), equalTo(data1Len + data2Len));
+
+        // Rename the file
+        integrationConfiguration = getIntegrationConfiguration(pathRename);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_SOURCE_PATH, fileName1);
+        values.put(Constants.SC_ATTR_DESTINATION_PATH, fileName2);
+        setValues(integrationConfiguration, values);
+
+        response = pathRename.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("201"));
+
+        // Check and make sure the original does not exist
+
+        // Check the new file exists
+
+        // Do a file list and confirm the old and new files
+
+        // Read the contents of the new file and check the length
+
+        // Delete the new file
+        integrationConfiguration = getIntegrationConfiguration(pathDelete);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName2);
+        values.put(Constants.SC_ATTR_RECURSIVE, Boolean.TRUE);
+        setValues(integrationConfiguration, values);
+
+        response = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+
+        // Check the new file does not exist
+
+    }
+}

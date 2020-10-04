@@ -1,0 +1,18 @@
+<appian-plugin name="Azure Connected System - Datalake" key="uk.org.kano.appian.azuredatalake">
+    <plugin-info>
+        <description>Azure Connected System - Datalake</description>
+        <vendor name="kano.org.uk" url="https://www.kano.org.uk/"/>
+        <version>1.0.0.0</version>
+        <application-version min="19.1"/>
+    </plugin-info>
+
+    <connected-system-template key="AzureDatalake"
+                               name="AzureDatalakeConnectedSystemTemplate"
+                               class="uk.org.kano.appian.AzureDatalakeConnectedSystemTemplate">
+
+        <integration-template key="FileSystemGetProperties"
+                              name="File System - Get Properties"
+                              class="uk.org.kano.appian.filesystem.GetProperties"/>
+
+    </connected-system-template>
+</appian-plugin>
