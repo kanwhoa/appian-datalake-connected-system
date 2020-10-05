@@ -29,7 +29,7 @@ public class TestBase {
 
         // Get the configuration to help test classes.
         connectedSystemConfiguration = getConnectedSystemConfiguration();
-        setValues(connectedSystemConfiguration, credentials);
+        credentials.forEach((key, value) -> connectedSystemConfiguration.setValue(key.toString(), value));
     }
 
     /**
@@ -60,7 +60,7 @@ public class TestBase {
      * @param configuration
      * @param values
      */
-    protected static void setValues(SimpleConfiguration configuration, Map<?, ?> values) {
-        values.forEach( (key, value) -> configuration.setValue(key.toString(), value.toString()));
+    protected static void setValues(SimpleConfiguration configuration, Map<String, ?> values) {
+        values.forEach(configuration::setValue);
     }
 }

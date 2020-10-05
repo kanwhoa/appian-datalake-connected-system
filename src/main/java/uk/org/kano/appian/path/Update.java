@@ -17,6 +17,7 @@ import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.log4j.Logger;
+import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
 import uk.org.kano.appian.LogUtil;
@@ -76,22 +77,29 @@ public class Update extends SimpleIntegrationTemplate {
         }
         if(!path.startsWith("/")) path = "/" + path;
 
+        // Get the file properties
+        GetProperties getProperties = new GetProperties();
+        IntegrationResponse propertiesResponse = getProperties.execute(integrationConfiguration, connectedSystemConfiguration, executionContext);
+        if (!propertiesResponse.isSuccess()) {
+            return propertiesResponse;
+        }
+
         // If appending data, then get the length of the file and set the file to the end of the stream.
-        boolean overwrite = Boolean.parseBoolean(integrationConfiguration.getValue(Constants.SC_ATTR_OVERWRITE));
+        boolean overwrite = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_OVERWRITE);
         long position = 0;
         if (!overwrite) {
-            GetProperties getProperties = new GetProperties();
-            IntegrationResponse propertiesResponse = getProperties.execute(integrationConfiguration, connectedSystemConfiguration, executionContext);
-            if (!propertiesResponse.isSuccess()) {
-                return propertiesResponse;
-            }
             position = Long.parseLong(propertiesResponse.getResult().get("length").toString());
         }
+
+        // Copy the mime type so that it doesn't get erased.
+        ContentType contentType = ContentType.parse(propertiesResponse.getResult().get("type").toString());
+        if (null == contentType) contentType = ContentType.APPLICATION_OCTET_STREAM;
+        if (null == contentType.getCharset()) contentType = contentType.withCharset(StandardCharsets.UTF_8);
 
         // Create the body
         String content = integrationConfiguration.getValue(Constants.SC_ATTR_CONTENT);
         if (null == content) content = "";
-        HttpEntity entity = new ByteArrayEntity(content.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_OCTET_STREAM, StandardCharsets.UTF_8.name(), false);
+        HttpEntity entity = new ByteArrayEntity(content.getBytes(contentType.getCharset()), contentType, false);
         long flushLength = position + entity.getContentLength();
 
         // Create the URI
@@ -108,7 +116,7 @@ public class Update extends SimpleIntegrationTemplate {
             flushUri = uriBuilder
                     .setPath(uriBuilder.getPath() + path)
                     .addParameter("action", "flush")
-                    //.addParameter("close", "true")
+                    .addParameter("close", "true")
                     .addParameter("position", Long.toString(flushLength))
                     .build();
         } catch (URISyntaxException e) {
@@ -118,10 +126,11 @@ public class Update extends SimpleIntegrationTemplate {
         // Do the request
         HttpPatch request = new HttpPatch(uploadUri);
         request.setEntity(entity);
+        BasicResponseHandler brh = new BasicResponseHandler();
         startTime = System.currentTimeMillis();
 
         try {
-            executeResponse = client.execute(request, HttpUtils.getBasicResponseHandler());
+            executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());
@@ -145,9 +154,9 @@ public class Update extends SimpleIntegrationTemplate {
 
         // Finalise and flush the data
         request = new HttpPatch(flushUri);
-        request.setEntity(new StringEntity("", ContentType.APPLICATION_OCTET_STREAM, StandardCharsets.UTF_8.name(), false));
+        request.setEntity(new StringEntity("", contentType, false));
         try {
-            executeResponse = client.execute(request, HttpUtils.getBasicResponseHandler());
+            executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());

@@ -16,6 +16,7 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.log4j.Logger;
+import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
 import uk.org.kano.appian.LogUtil;
@@ -99,7 +100,8 @@ public class Rename extends SimpleIntegrationTemplate {
         request.setEntity(entity);
 
         try {
-            executeResponse = client.execute(request, HttpUtils.getBasicResponseHandler());
+            BasicResponseHandler brh = new BasicResponseHandler();
+            executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());

@@ -14,6 +14,7 @@ import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.log4j.Logger;
+import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
 import uk.org.kano.appian.LogUtil;
@@ -75,7 +76,9 @@ public class GetProperties extends SimpleIntegrationTemplate {
         startTime = System.currentTimeMillis();
 
         try {
-            executeResponse = client.execute(request, HttpUtils.getBasicResponseHandler(false));
+            BasicResponseHandler brh = new BasicResponseHandler();
+            brh.setHandleMissingResourceAsError(false);
+            executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());
