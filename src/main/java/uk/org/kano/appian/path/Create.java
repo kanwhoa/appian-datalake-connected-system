@@ -16,6 +16,7 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.log4j.Logger;
+import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
 import uk.org.kano.appian.LogUtil;
@@ -23,6 +24,7 @@ import uk.org.kano.appian.LogUtil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -40,6 +42,12 @@ public class Create extends SimpleIntegrationTemplate {
                         .label("Path to create")
                         .description("The path to be created.")
                         .isRequired(true)
+                        .isExpressionable(true)
+                        .build(),
+                textProperty(Constants.SC_ATTR_MIME_TYPE)
+                        .label("Mime type")
+                        .description("Override the default mime type.")
+                        .isRequired(false)
                         .isExpressionable(true)
                         .build(),
                 booleanProperty(Constants.SC_ATTR_FILE)
@@ -68,7 +76,7 @@ public class Create extends SimpleIntegrationTemplate {
         }
 
         URIBuilder uriBuilder = new URIBuilder(resourceUri);
-        boolean isFile = Boolean.parseBoolean(integrationConfiguration.getValue(Constants.SC_ATTR_FILE));
+        boolean isFile = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_FILE);
         String path = integrationConfiguration.getValue(Constants.SC_ATTR_PATH);
         if (null == path || (path.startsWith("/") && path.length() < 2) || (!path.startsWith("/") && path.length() < 1)) {
             return LogUtil.createError("Invalid path", "Invalid path specified");
@@ -91,15 +99,24 @@ public class Create extends SimpleIntegrationTemplate {
         startTime = System.currentTimeMillis();
 
         // Check if not to overwrite
-        boolean doOverwrite = Boolean.parseBoolean(integrationConfiguration.getValue(Constants.SC_ATTR_OVERWRITE));
+        boolean doOverwrite = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_OVERWRITE);
         if (!doOverwrite) request.addHeader("If-None-Match", "\"*\"");
 
         // Create an empty entity
-        HttpEntity entity = new StringEntity("", ContentType.APPLICATION_OCTET_STREAM, false);
+        String mimeType = integrationConfiguration.getValue(Constants.SC_ATTR_MIME_TYPE);
+        ContentType contentType;
+        if (null == mimeType) {
+            contentType = ContentType.APPLICATION_OCTET_STREAM;
+        } else {
+            contentType = ContentType.parse(mimeType);
+            if (null == contentType.getCharset()) contentType = contentType.withCharset(StandardCharsets.UTF_8);
+        }
+        HttpEntity entity = new StringEntity("", contentType, false);
         request.setEntity(entity);
 
         try {
-            executeResponse = client.execute(request, HttpUtils.getBasicResponseHandler());
+            BasicResponseHandler brh = new BasicResponseHandler();
+            executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());

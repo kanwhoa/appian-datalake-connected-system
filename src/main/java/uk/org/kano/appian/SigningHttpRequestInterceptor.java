@@ -7,6 +7,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -53,8 +54,6 @@ public class SigningHttpRequestInterceptor implements HttpRequestInterceptor {
         // Parse the canonical location
         String uriPath = location.getPath();
         if (null == uriPath) throw new IOException("Filesystem not specified");
-        String[] uriPathSegments = uriPath.split("/");
-        //if (uriPathSegments.length < 2) throw new IOException("Filesystem not specified");
 
         // Get the accountName
         String accountName = location.getHost().replaceAll("\\..*$", "");
@@ -64,10 +63,23 @@ public class SigningHttpRequestInterceptor implements HttpRequestInterceptor {
         if (null != location.getQuery()) {
             Arrays.stream(location.getQuery().split("&")).forEach(option -> {
                 String[] parts = option.split("=", 2);
+                String decodedPart;
+
+                decodedPart = parts[0];
+                try {
+                    decodedPart = java.net.URLDecoder.decode(decodedPart, StandardCharsets.UTF_8.name()); // Lots of warnings about 8859-1 in the Microsoft docs.
+                } catch (UnsupportedEncodingException ignored) {}
+
                 optionsBuilder.append('\n');
-                optionsBuilder.append(parts[0]);
+                optionsBuilder.append(decodedPart);
                 optionsBuilder.append(':');
-                optionsBuilder.append(2 == parts.length ? parts[1] : "");
+
+                decodedPart = 2 == parts.length ? parts[1] : "";
+                if (null == decodedPart) decodedPart = "";
+                try {
+                    decodedPart = java.net.URLDecoder.decode(decodedPart, StandardCharsets.UTF_8.name()); // Lots of warnings about 8859-1 in the Microsoft docs.
+                } catch (UnsupportedEncodingException ignored) {}
+                optionsBuilder.append(decodedPart);
             });
         }
 
