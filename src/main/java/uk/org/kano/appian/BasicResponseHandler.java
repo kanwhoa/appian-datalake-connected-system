@@ -2,7 +2,6 @@ package uk.org.kano.appian;
 
 import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import com.appian.connectedsystems.templateframework.sdk.diagnostics.IntegrationDesignerDiagnostic;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.log4j.Logger;
@@ -22,7 +21,6 @@ import java.util.Map;
  */
 public class BasicResponseHandler implements HttpClientResponseHandler<IntegrationResponse> {
     private static Logger logger = Logger.getLogger(BasicResponseHandler.class);
-    private ObjectMapper mapper = new ObjectMapper();
     private boolean missingResourceIsError = true;
     private boolean encodeBodyAsBase64 = false;
 
