@@ -105,7 +105,7 @@ public class Create extends SimpleIntegrationTemplate {
         // Create an empty entity
         String mimeType = integrationConfiguration.getValue(Constants.SC_ATTR_MIME_TYPE);
         ContentType contentType;
-        if (null == mimeType) {
+        if (null == mimeType || mimeType.isEmpty()) {
             contentType = ContentType.APPLICATION_OCTET_STREAM;
         } else {
             contentType = ContentType.parse(mimeType);
@@ -128,7 +128,7 @@ public class Create extends SimpleIntegrationTemplate {
         endTime = System.currentTimeMillis();
 
         // Record some diagnostics
-        Map<String, Object> requestDiagnostic = LogUtil.getDiagnosticMap("request", request.toString(), "operation", this.getClass().getSimpleName());
+        Map<String, Object> requestDiagnostic = LogUtil.getIntegrationDataMap("request", request.toString(), "operation", this.getClass().getSimpleName());
         IntegrationDesignerDiagnostic integrationDesignerDiagnostic = IntegrationDesignerDiagnostic.builder()
                 .addRequestDiagnostic(requestDiagnostic)
                 .addExecutionTimeDiagnostic(endTime - startTime)

@@ -95,7 +95,7 @@ public class Read extends SimpleIntegrationTemplate {
         endTime = System.currentTimeMillis();
 
         // Record some diagnostics
-        Map<String, Object> requestDiagnostic = LogUtil.getDiagnosticMap("request", request.toString(), "operation", this.getClass().getSimpleName());
+        Map<String, Object> requestDiagnostic = LogUtil.getIntegrationDataMap("request", request.toString(), "operation", this.getClass().getSimpleName());
         IntegrationDesignerDiagnostic integrationDesignerDiagnostic = IntegrationDesignerDiagnostic.builder()
                 .addRequestDiagnostic(requestDiagnostic)
                 .addExecutionTimeDiagnostic(endTime - startTime)

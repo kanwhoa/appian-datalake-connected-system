@@ -22,12 +22,12 @@ public class LogUtil {
      * @param kv
      * @return
      */
-    public static Map<String, Object> getDiagnosticMap(String... kv) {
+    public static Map<String, Object> getIntegrationDataMap(Object... kv) {
         HashMap<String, Object> rv = new HashMap<>();
 
         if (kv.length % 2 != 0) return rv;
         for (int i=0; i<kv.length; i+=2) {
-            rv.put(kv[i], kv[i+1]);
+            rv.put(kv[i].toString(), kv[i+1]);
         }
         return rv;
     }

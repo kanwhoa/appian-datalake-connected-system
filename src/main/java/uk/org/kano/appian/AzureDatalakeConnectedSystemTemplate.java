@@ -33,16 +33,19 @@ public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnecte
                         .label("ADLS Gen 2 Account Name")
                         .description("The Account Name of the ADLS resource eg: https://accountname.blob.core.windows.net/")
                         .isRequired(true)
+                        .isImportCustomizable(true)
                         .build(),
                 encryptedTextProperty(CS_ADLS_G2_ACCOUNT_KEY)
                         .label("ADLS Gen 2 Account Key")
                         .description("The Account Key of the ADLS resource (base 64 encoded value)")
                         .isRequired(true)
+                        .isImportCustomizable(true)
                         .build(),
                 textProperty(CS_ADLS_G2_FILESYSTEM)
                         .label("Password")
                         .description("The File System of the ADLS resource eg: https://accountname.blob.core.windows.net/filesystem")
                         .isRequired(true)
+                        .isImportCustomizable(true)
                         .build()
         );
     }
