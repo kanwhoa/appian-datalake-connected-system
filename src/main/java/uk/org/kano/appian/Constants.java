@@ -19,4 +19,6 @@ public final class Constants {
     public static final String SC_ATTR_DESTINATION_PATH = "destinationPath";
     public static final String SC_ATTR_BASE64_BODY = "base64Body";
     public static final String SC_ATTR_MIME_TYPE = "mimeType";
+    public static final String SC_ATTR_TABLES = "tables";
+    public static final String SC_ATTR_JNDI_RESOURCE = "jdniResource";
 }

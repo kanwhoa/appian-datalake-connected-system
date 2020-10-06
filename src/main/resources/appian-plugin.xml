@@ -10,9 +10,18 @@
                                name="AzureDatalakeConnectedSystemTemplate"
                                class="uk.org.kano.appian.AzureDatalakeConnectedSystemTemplate">
 
-        <integration-template key="FileSystemGetProperties"
-                              name="File System - Get Properties"
-                              class="uk.org.kano.appian.filesystem.GetProperties"/>
+        <integration-template key="FileSystemGetProperties" name="File System - Get Properties" class="uk.org.kano.appian.filesystem.GetProperties"/>
+        <integration-template key="FileSystemList" name="File System - List" class="uk.org.kano.appian.filesystem.List"/>
+
+        <integration-template key="PathCreate" name="Path - Create" class="uk.org.kano.appian.path.Create"/>
+        <integration-template key="PathDelete" name="Path - Delete" class="uk.org.kano.appian.path.Delete"/>
+        <integration-template key="PathGetProperties" name="Path - Get Properties" class="uk.org.kano.appian.path.GetProperties"/>
+        <integration-template key="PathList" name="Path - List" class="uk.org.kano.appian.path.List"/>
+        <integration-template key="PathRead" name="Path - Read" class="uk.org.kano.appian.path.Read"/>
+        <integration-template key="PathRename" name="Path - Rename" class="uk.org.kano.appian.path.Rename"/>
+        <integration-template key="PathUpdate" name="Path - Update" class="uk.org.kano.appian.path.Update"/>
+
+        <integration-template key="DatabaseUploader" name="Miscellaneous - Database Upload" class="uk.org.kano.appian.path.Update"/>
 
     </connected-system-template>
 </appian-plugin>

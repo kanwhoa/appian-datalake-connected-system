@@ -132,7 +132,7 @@ public class Update extends SimpleIntegrationTemplate {
         try {
             executeResponse = client.execute(request, brh);
         } catch (IOException e) {
-            executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
+            executeResponse = LogUtil.createError("Unable to execute request to " + uploadUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());
         }
         // Fail if the upload was not a success
@@ -143,7 +143,7 @@ public class Update extends SimpleIntegrationTemplate {
 
             endTime = System.currentTimeMillis();
             // Record some diagnostics
-            Map<String, Object> requestDiagnostic = LogUtil.getDiagnosticMap("request", request.toString(), "operation", this.getClass().getSimpleName());
+            Map<String, Object> requestDiagnostic = LogUtil.getIntegrationDataMap("request", request.toString(), "operation", this.getClass().getSimpleName());
             IntegrationDesignerDiagnostic integrationDesignerDiagnostic = IntegrationDesignerDiagnostic.builder()
                     .addRequestDiagnostic(requestDiagnostic)
                     .addExecutionTimeDiagnostic(endTime - startTime)
@@ -158,7 +158,7 @@ public class Update extends SimpleIntegrationTemplate {
         try {
             executeResponse = client.execute(request, brh);
         } catch (IOException e) {
-            executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());
+            executeResponse = LogUtil.createError("Unable to execute request to " + flushUri.toString(), e.getMessage());
             logger.error(executeResponse.getError().getDetail());
         } finally {
             try {
@@ -168,7 +168,7 @@ public class Update extends SimpleIntegrationTemplate {
         endTime = System.currentTimeMillis();
 
         // Record some diagnostics
-        Map<String, Object> requestDiagnostic = LogUtil.getDiagnosticMap("request", request.toString(), "operation", this.getClass().getSimpleName());
+        Map<String, Object> requestDiagnostic = LogUtil.getIntegrationDataMap("request", request.toString(), "operation", this.getClass().getSimpleName());
         IntegrationDesignerDiagnostic integrationDesignerDiagnostic = IntegrationDesignerDiagnostic.builder()
                 .addRequestDiagnostic(requestDiagnostic)
                 .addExecutionTimeDiagnostic(endTime - startTime)

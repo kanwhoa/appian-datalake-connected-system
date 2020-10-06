@@ -2,20 +2,23 @@ package uk.org.kano.appian.path;
 
 import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
 import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.TestBase;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.isJson;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 
-public class FileTest extends TestBase {
+public class FileOperationsTest extends TestBase {
     private Create pathCreate = new Create();
     private Delete pathDelete = new Delete();
     private GetProperties pathGetProperties = new GetProperties();
@@ -29,7 +32,8 @@ public class FileTest extends TestBase {
     private String fileName2 = "example2.csv";
 
     @Before
-    public void preClean() {
+    @After
+    public void clean() {
         SimpleConfiguration integrationConfiguration;
         Map<String, Object> values;
 
@@ -50,7 +54,7 @@ public class FileTest extends TestBase {
 
     @Test
     @SuppressWarnings("rawtypes")
-    public void basicOperations_File_Success() {
+    public void basicOperations_Success() {
         SimpleConfiguration integrationConfiguration;
         Map<String, Object> values;
         IntegrationResponse response;
@@ -167,7 +171,7 @@ public class FileTest extends TestBase {
         assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
         assertThat(Integer.parseInt(response.getResult().get("length").toString()), equalTo(data1Len + data2Len));
 
-        // Do a file list and confirm the old and new files
+        // Do a file list and confirm the new file is there
         integrationConfiguration = getIntegrationConfiguration(pathList);
         values = new HashMap<>();
         values.put(Constants.SC_ATTR_PATH, fileName2);
@@ -188,7 +192,20 @@ public class FileTest extends TestBase {
         response = pathRead.execute(integrationConfiguration, connectedSystemConfiguration, null);
         assertThat(response.isSuccess(), equalTo(true));
         assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
-        assertThat(response.getResult().get("body").toString().length(), equalTo(data1.length() + data2.length()));
+        assertThat(response.getResult().get("body").toString(), equalTo(data1 + data2));
+
+        // Read the contents as a base64 string
+        integrationConfiguration = getIntegrationConfiguration(pathRead);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_BASE64_BODY, true);
+        values.put(Constants.SC_ATTR_PATH, fileName2);
+        setValues(integrationConfiguration, values);
+
+        response = pathRead.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+        String base64Body = response.getResult().get("body").toString();
+        assertThat(new String(Base64.getDecoder().decode(base64Body), StandardCharsets.UTF_8), equalTo(data1 + data2));
 
         // Delete the new file
         integrationConfiguration = getIntegrationConfiguration(pathDelete);
@@ -212,6 +229,26 @@ public class FileTest extends TestBase {
         assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("404"));
     }
 
-    // TODO: recursive list test
-    // return body as base64 test
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void recursiveList_Success() {
+        SimpleConfiguration integrationConfiguration;
+        Map<String, Object> values;
+        IntegrationResponse response;
+
+        integrationConfiguration = getIntegrationConfiguration(pathList);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_RECURSIVE, true);
+        setValues(integrationConfiguration, values);
+
+        response = pathList.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(((Map)response.getIntegrationDesignerDiagnostic().getData().get("response")).get("responseCode"), equalTo("200"));
+        assertThat(response.getResult().get("body"), isJson(
+                allOf(
+                        hasJsonPath("$.paths[*].name", hasSize(greaterThan(0)))
+                )
+                )
+        );
+    }
 }

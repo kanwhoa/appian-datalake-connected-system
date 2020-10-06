@@ -79,7 +79,7 @@ public class BasicResponseHandler implements HttpClientResponseHandler<Integrati
                         }
 
                         if (encodeBodyAsBase64 || ContentType.APPLICATION_OCTET_STREAM.isSameMimeType(contentType)) {
-                            body = Base64.getEncoder().withoutPadding().encodeToString(baos.toByteArray());
+                            body = Base64.getEncoder().encodeToString(baos.toByteArray());
                         } else {
                             Charset charset = contentType.getCharset();
                             if (null == charset) charset = StandardCharsets.UTF_8;
@@ -128,7 +128,7 @@ public class BasicResponseHandler implements HttpClientResponseHandler<Integrati
 
         IntegrationDesignerDiagnostic integrationDesignerDiagnostic = IntegrationDesignerDiagnostic.builder()
                 .addResponseDiagnostic(
-                        LogUtil.getDiagnosticMap("responseCode", Integer.toString(classicHttpResponse.getCode()), "reasonMessage", classicHttpResponse.getReasonPhrase())
+                        LogUtil.getIntegrationDataMap("responseCode", Integer.toString(classicHttpResponse.getCode()), "reasonMessage", classicHttpResponse.getReasonPhrase())
                 )
                 .build();
         return rv.toBuilder().withDiagnostic(integrationDesignerDiagnostic).build();
