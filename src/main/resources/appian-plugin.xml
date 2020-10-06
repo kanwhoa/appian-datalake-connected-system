@@ -18,7 +18,7 @@
 <appian-plugin name="Azure Connected System - Datalake" key="uk.org.kano.appian.azuredatalake">
     <plugin-info>
         <description>Azure Connected System - Datalake</description>
-        <vendor name="kano.org.uk" url="https://www.kano.org.uk/"/>
+        <vendor name="kano.org.uk" url="https://github.com/kanwhoa/appian-datalake-connected-system"/>
         <version>1.0.0.0</version>
         <application-version min="19.1"/>
     </plugin-info>
