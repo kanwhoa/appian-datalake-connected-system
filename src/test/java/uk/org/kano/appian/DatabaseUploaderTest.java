@@ -77,7 +77,7 @@ public class DatabaseUploaderTest extends TestBase {
         conn.close();
     }
 
-    //@After
+    @After
     public void cleanup() {
         SimpleConfiguration integrationConfiguration;
         Map<String, Object> values;
