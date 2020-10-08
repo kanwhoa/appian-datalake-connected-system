@@ -45,7 +45,7 @@ import static org.junit.Assert.assertThat;
  * A test script for the database uploader
  */
 public class DatabaseUploaderTest extends TestBase {
-    private static final String[] TABLES = new String[] { "table1", "table2" };
+    private static final String[] TABLES = new String[] { "TABLE1", "TABLE2" };
     private static final String PATH = "/appiantest";
     private static final String JDNI_RESOURCE = "jdbc/Appian";
 

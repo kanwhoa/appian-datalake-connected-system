@@ -44,8 +44,8 @@ public class HttpUtils {
 
 
     /**
-     * Create an HTTP Client that has a set of pre-configured authentication helpers.
-     * FIXME, this doesn't honour the proxy exclude hosts
+     * Create an HTTP Client that has a set of pre-configured authentication helpers. This does not
+     * honour the proxy excludes, firstly due to support, but also, the ADLS Gen 2 host should be external.
      * @return
      */
     public static CloseableHttpClient getHttpClient(ExecutionContext executionContext) {
