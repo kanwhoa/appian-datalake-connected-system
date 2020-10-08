@@ -118,6 +118,16 @@
     </dependencies>
 
     <build>
+        <!-- add the source code as required by Appian's plugin requirements -->
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.java</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

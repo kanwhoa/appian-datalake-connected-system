@@ -44,3 +44,6 @@ hs_err_pid*
 
 # misc
 *.xlsx
+
+# Make sure the credentials are not included
+**/credentials.properties
