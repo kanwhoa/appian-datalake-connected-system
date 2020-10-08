@@ -75,6 +75,7 @@ public class DatabaseUploader extends SimpleIntegrationTemplate {
                 listTypeProperty(Constants.SC_ATTR_TABLES)
                         .label("Tables")
                         .description("The list of tables to upload.")
+                        .instructionText("Check the case of the table. Many databases upper-case the table name if not specified, and this can cause the table existence check to fail.")
                         .isRequired(true)
                         .isExpressionable(true)
                         .itemType(SystemType.STRING)
@@ -163,9 +164,8 @@ public class DatabaseUploader extends SimpleIntegrationTemplate {
                 }
                 resultSet.close();
 
-                // FIXME
-                //if (0 == tableCount) throw  new SQLException("Table does not exist");
-                //if (tableCount > 1) throw  new SQLException("Name matched multiple tables");
+                if (0 == tableCount) throw  new SQLException("Table does not exist");
+                if (tableCount > 1) throw  new SQLException("Name matched multiple tables");
             } catch (SQLException e) {
                 try { conn.close(); } catch (SQLException ignored) {}
                 IntegrationResponse error =  LogUtil.createError("Unable to get table information for "+table, e.getMessage());
