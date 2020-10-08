@@ -61,7 +61,7 @@ public class DatabaseUploader extends SimpleIntegrationTemplate {
     private Logger logger = Logger.getLogger(this.getClass());
     private static final String DEFAULT_JNDI_RESOURCE = "jdbc/Appian";
     private static final ContentType CSV_CONTENT_TYPE = ContentType.parse("text/csv;charset=utf8");
-
+    private static final int FETCH_ROWS = 1000;
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
@@ -203,67 +203,95 @@ public class DatabaseUploader extends SimpleIntegrationTemplate {
             }
 
             // Runnable 1 to export the data and write to a CSV printer
-            Callable<IntegrationResponse> exporterTask = () -> {
-                IntegrationResponse integrationResponse;
+            Callable<IntegrationResponse> exporterTask = new Callable<IntegrationResponse>() {
+                @Override
+                public IntegrationResponse call() throws Exception {
+                    IntegrationResponse integrationResponse;
 
-                // Export and upload
-                try (Statement statement = conn.createStatement();
-                     ResultSet resultSet = statement.executeQuery("select * from " + table);
-                     CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(pipeOut), CSVFormat.RFC4180.withQuoteMode(QuoteMode.ALL_NON_NULL).withHeader(resultSet))
-                ) {
-                    printer.printRecords(resultSet);
-                    pipeOut.flush();
-                    return null;
-                } catch (IOException | SQLException e) {
-                    integrationResponse = LogUtil.createError("Database exporter thread threw an exception", e.getMessage());
-                    logger.error(integrationResponse.getError().getTitle(), e);
-                    return integrationResponse;
+                    // Create and configure the statement
+                    Statement statement;
+                    try {
+                        statement = conn.createStatement();
+                        statement.setFetchDirection(ResultSet.FETCH_FORWARD);
+                        statement.setFetchSize(FETCH_ROWS);
+                    } catch (SQLException e) {
+                        integrationResponse = LogUtil.createError("Unable to create connection to the database", e.getMessage());
+                        logger.error(integrationResponse.getError().getTitle(), e);
+                        return integrationResponse;
+                    }
+
+                    // Export and upload
+                    try (ResultSet resultSet = statement.executeQuery("select * from " + table);
+                         CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(pipeOut), CSVFormat.RFC4180.withQuoteMode(QuoteMode.ALL_NON_NULL).withHeader(resultSet))
+                    ) {
+                        printer.printRecords(resultSet);
+                        pipeOut.flush();
+                        return null;
+                    } catch (IOException | SQLException e) {
+                        integrationResponse = LogUtil.createError("Database exporter thread threw an exception", e.getMessage());
+                        logger.error(integrationResponse.getError().getTitle(), e);
+                        return integrationResponse;
+                    } finally {
+                        try {
+                            statement.close();
+                        } catch (SQLException ignored) {
+                        }
+                    }
                 }
             };
 
             // Runnable 2 to upload the data. This is very ugly because ADLS does not support a streaming API. Therefore. we need to set
             // each call to be one that is specific in length.
-            Callable<IntegrationResponse> uploaderTask = () -> {
-                byte[] buf = new byte[bufSize];
-                int bufLen;
-                long offset = 0;
-                IntegrationResponse integrationResponse;
-                URI uploadUri = resourceUri;
+            Callable<IntegrationResponse> uploaderTask = new Callable<IntegrationResponse>() {
+                @Override
+                public IntegrationResponse call() throws Exception {
+                    byte[] buf = new byte[bufSize];
+                    int bufLen;
+                    long offset = 0;
+                    IntegrationResponse integrationResponse;
+                    URI uploadUri = resourceUri;
 
-                try {
-                    for(offset = 0; (bufLen = pipeIn.read(buf, 0, bufSize)) > 0; offset += bufLen) {
-                        // Update the URL for the data package
-                        try {
-                            URIBuilder uriBuilder = new URIBuilder(resourceUri);
-                            uploadUri = uriBuilder
-                                    .setPath(uriBuilder.getPath() + tablePath)
-                                    .addParameter("action", "append")
-                                    .addParameter("position", Long.toString(offset))
-                                    .build();
-                        } catch (URISyntaxException e) {
-                            try { conn.close(); } catch (SQLException ignored) {}
-                            return LogUtil.createError("Invalid URI", e.getMessage());
+                    try {
+                        for (offset = 0; (bufLen = pipeIn.read(buf, 0, bufSize)) > 0; offset += bufLen) {
+                            // Update the URL for the data package
+                            try {
+                                URIBuilder uriBuilder = new URIBuilder(resourceUri);
+                                uploadUri = uriBuilder
+                                        .setPath(uriBuilder.getPath() + tablePath)
+                                        .addParameter("action", "append")
+                                        .addParameter("position", Long.toString(offset))
+                                        .build();
+                            } catch (URISyntaxException e) {
+                                try {
+                                    conn.close();
+                                } catch (SQLException ignored) {
+                                }
+                                return LogUtil.createError("Invalid URI", e.getMessage());
+                            }
+
+                            HttpPatch request = new HttpPatch(uploadUri);
+                            ByteArrayEntity entity = new ByteArrayEntity(buf, 0, bufLen, CSV_CONTENT_TYPE, false);
+                            request.setEntity(entity);
+                            BasicResponseHandler brh = new BasicResponseHandler();
+                            integrationResponse = client.execute(request, brh);
+                            if (!integrationResponse.isSuccess()) return integrationResponse;
                         }
 
-                        HttpPatch request = new HttpPatch(uploadUri);
-                        ByteArrayEntity entity = new ByteArrayEntity(buf, 0, bufLen, CSV_CONTENT_TYPE, false);
-                        request.setEntity(entity);
-                        BasicResponseHandler brh = new BasicResponseHandler();
-                        integrationResponse = client.execute(request, brh);
-                        if (!integrationResponse.isSuccess()) return integrationResponse;
+                        Map<String, Object> responseData = LogUtil.getIntegrationDataMap("length", offset);
+                        integrationResponse = IntegrationResponse.forSuccess(responseData).build();
+                    } catch (IOException e) {
+                        integrationResponse = LogUtil.createError("Unable to execute request to " + uploadUri.toString(), e.getMessage());
+                        logger.error(integrationResponse.getError().getDetail());
+                        return integrationResponse;
+                    } finally {
+                        try {
+                            pipeIn.close();
+                        } catch (IOException ignored) {
+                        }
                     }
 
-                    Map<String, Object> responseData = LogUtil.getIntegrationDataMap("length", offset);
-                    integrationResponse = IntegrationResponse.forSuccess(responseData).build();
-                } catch (IOException e) {
-                    integrationResponse = LogUtil.createError("Unable to execute request to " + uploadUri.toString(), e.getMessage());
-                    logger.error(integrationResponse.getError().getDetail());
                     return integrationResponse;
-                } finally {
-                    try { pipeIn.close(); } catch (IOException ignored) { }
                 }
-
-                return integrationResponse;
             };
 
             // Run each thread and check the responses.
