@@ -78,11 +78,13 @@ public class HttpUtils {
         URIBuilder builder = new URIBuilder();
         try {
             signingHttpRequestInterceptor.setKey(configuration.getValue(AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_ACCOUNT_KEY));
-            return builder
+            URI location = builder
                     .setScheme("https")
                     .setHost(configuration.getValue(AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_ACCOUNT_NAME) + AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_DOMAINNAME)
                     .setPath(configuration.getValue(AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_FILESYSTEM))
                     .build();
+            logger.info("Using datalake at URL " + location.toString());
+            return location;
         } catch (IOException | URISyntaxException e) {
             logger.error("Unable to build URL", e);
             return null;

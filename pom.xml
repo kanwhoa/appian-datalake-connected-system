@@ -158,7 +158,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/classes/lib</outputDirectory>
+                            <outputDirectory>${project.build.directory}/classes/META-INF/lib</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
@@ -178,7 +178,8 @@
                             <addClasspath>true</addClasspath>
                         </manifest>
                         <manifestEntries>
-                            <Class-Path>lib/</Class-Path>
+                            <Class-Path>META-INF/lib/</Class-Path>
+                            <Spring-Context>*;publish-context:=false</Spring-Context>
                         </manifestEntries>
                     </archive>
                 </configuration>

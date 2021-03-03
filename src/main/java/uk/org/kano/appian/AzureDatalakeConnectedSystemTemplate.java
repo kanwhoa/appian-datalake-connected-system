@@ -17,21 +17,18 @@
 
 package uk.org.kano.appian;
 
-import com.appian.connectedsystems.simplified.sdk.SimpleConnectedSystemTemplate;
 import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
 import com.appian.connectedsystems.simplified.sdk.connectiontesting.SimpleTestableConnectedSystemTemplate;
 import com.appian.connectedsystems.templateframework.sdk.ExecutionContext;
 import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import com.appian.connectedsystems.templateframework.sdk.TemplateId;
-import com.appian.connectedsystems.templateframework.sdk.configuration.ConfigurationDescriptor;
 import com.appian.connectedsystems.templateframework.sdk.connectiontesting.TestConnectionResult;
+import org.apache.log4j.Logger;
 import uk.org.kano.appian.filesystem.GetProperties;
-
-import java.io.IOException;
-import java.net.URI;
 
 @TemplateId(name="AzureDatalakeConnectedSystemTemplate")
 public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnectedSystemTemplate {
+    private Logger logger = Logger.getLogger(this.getClass());
     static String CS_ADLS_G2_ACCOUNT_NAME = "accountName";
     static String CS_ADLS_G2_ACCOUNT_KEY = "accountKey";
     static String CS_ADLS_G2_FILESYSTEM = "fileSystem";
@@ -47,19 +44,19 @@ public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnecte
     protected SimpleConfiguration getConfiguration(SimpleConfiguration configuration, ExecutionContext executionContext) {
         return configuration.setProperties(
                 textProperty(CS_ADLS_G2_ACCOUNT_NAME)
-                        .label("ADLS Gen 2 Account Name")
+                        .label("Account Name")
                         .description("The Account Name of the ADLS resource eg: https://accountname.blob.core.windows.net/")
                         .isRequired(true)
                         .isImportCustomizable(true)
                         .build(),
                 encryptedTextProperty(CS_ADLS_G2_ACCOUNT_KEY)
-                        .label("ADLS Gen 2 Account Key")
+                        .label("Account Key")
                         .description("The Account Key of the ADLS resource (base 64 encoded value)")
                         .isRequired(true)
                         .isImportCustomizable(true)
                         .build(),
                 textProperty(CS_ADLS_G2_FILESYSTEM)
-                        .label("Password")
+                        .label("Filesystem")
                         .description("The File System of the ADLS resource eg: https://accountname.blob.core.windows.net/filesystem")
                         .isRequired(true)
                         .isImportCustomizable(true)
@@ -75,11 +72,14 @@ public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnecte
      */
     @Override
     protected TestConnectionResult testConnection(SimpleConfiguration configuration, ExecutionContext executionContext) {
+        logger.info("Starting connection test");
         GetProperties getProperties = new GetProperties();
         IntegrationResponse response = getProperties.execute(configuration.toConfiguration(), configuration.toConfiguration(), executionContext);
         if (response.isSuccess()) {
+            logger.info("Connection test successful");
             return TestConnectionResult.success();
         } else {
+            logger.error("Connection test failure");
             return TestConnectionResult.error(response.getError().getDetail());
         }
     }
