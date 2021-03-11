@@ -22,9 +22,8 @@ import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import uk.org.kano.appian.path.Delete;
+import uk.org.kano.appian.path.PathDelete;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -50,7 +49,7 @@ public class DatabaseUploaderTest extends TestBase {
     private static final String JDNI_RESOURCE = "jdbc/Appian";
 
     private DatabaseUploader databaseUploader = new DatabaseUploader();
-    private Delete pathDelete = new Delete();
+    private PathDelete pathDelete = new PathDelete();
 
     @Before
     public void createDatabase() throws NamingException, SQLException {

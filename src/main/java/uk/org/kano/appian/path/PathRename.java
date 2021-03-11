@@ -26,10 +26,14 @@ import com.appian.connectedsystems.templateframework.sdk.configuration.PropertyP
 import com.appian.connectedsystems.templateframework.sdk.diagnostics.IntegrationDesignerDiagnostic;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateRequestPolicy;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateType;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
@@ -41,32 +45,26 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 /**
- * Get the properties of a path
+ * TODO: allow renames.
  */
-@TemplateId(name="PathList")
-@IntegrationTemplateType(IntegrationTemplateRequestPolicy.READ)
-public class List extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+@TemplateId(name="PathRename")
+@IntegrationTemplateType(IntegrationTemplateRequestPolicy.WRITE)
+public class PathRename extends SimpleIntegrationTemplate {
+    private static final Logger logger = LoggerFactory.getLogger(PathRename.class);
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
         return integrationConfiguration.setProperties(
-                textProperty(Constants.SC_ATTR_PATH)
-                        .label("Path")
-                        .description("The path to list the contents of.")
+                textProperty(Constants.SC_ATTR_SOURCE_PATH)
+                        .label("Source path")
+                        .description("The source path.")
                         .isRequired(true)
                         .isExpressionable(true)
                         .build(),
-                booleanProperty(Constants.SC_ATTR_RECURSIVE)
-                        .label("Recursive")
-                        .description("List the contents recursively (default false).")
-                        .isRequired(false)
-                        .isExpressionable(true)
-                        .build(),
-                booleanProperty(Constants.SC_ATTR_BASE64_BODY)
-                        .label("Base64 body")
-                        .description("Return the body as a base64 encoded value.")
-                        .isRequired(false)
+                textProperty(Constants.SC_ATTR_DESTINATION_PATH)
+                        .label("Destination path")
+                        .description("The destination path.")
+                        .isRequired(true)
                         .isExpressionable(true)
                         .build()
         );
@@ -82,30 +80,45 @@ public class List extends SimpleIntegrationTemplate {
             return LogUtil.createError("Invalid base URI", "The base URI is invalid");
         }
 
-        URIBuilder uriBuilder = new URIBuilder(resourceUri);
-        String path = integrationConfiguration.getValue(Constants.SC_ATTR_PATH);
-        if (null == path) path = "";
-        if(path.startsWith("/")) path = path.substring(1);
+        String sourcePath = integrationConfiguration.getValue(Constants.SC_ATTR_SOURCE_PATH);
+        if (null == sourcePath || (sourcePath.startsWith("/") && sourcePath.length() < 2) || (!sourcePath.startsWith("/") && sourcePath.length() < 1)) {
+            return LogUtil.createError("Invalid path", "Invalid source path specified");
+        }
+        if(!sourcePath.startsWith("/")) sourcePath = "/" + sourcePath;
+
+        String destinationPath = integrationConfiguration.getValue(Constants.SC_ATTR_DESTINATION_PATH);
+        if (null == destinationPath || (destinationPath.startsWith("/") && destinationPath.length() < 2) || (!destinationPath.startsWith("/") && destinationPath.length() < 1)) {
+            return LogUtil.createError("Invalid path", "Invalid destination path specified");
+        }
+        if(!destinationPath.startsWith("/")) destinationPath = "/" + destinationPath;
 
         // Create the URI
         try {
-            if (!"".equals(path)) uriBuilder.addParameter("directory", path);
+            URIBuilder uriBuilder = new URIBuilder(resourceUri);
+            sourcePath = uriBuilder
+                    .setPath(uriBuilder.getPath() + sourcePath)
+                    .build().getPath();
+
+            uriBuilder = new URIBuilder(resourceUri);
             resourceUri = uriBuilder
-                    .addParameter("recursive", Boolean.toString(integrationConfiguration.getValue(Constants.SC_ATTR_RECURSIVE)))
-                    .addParameter("resource", "filesystem")
+                    .setPath(uriBuilder.getPath() + destinationPath)
                     .build();
         } catch (URISyntaxException e) {
             return LogUtil.createError("Invalid URI", e.getMessage());
         }
 
         // Do the request
-        HttpGet request = new HttpGet(resourceUri);
+        HttpPut request = new HttpPut(resourceUri);
+        request.addHeader("x-ms-rename-source", sourcePath);
         IntegrationResponse executeResponse = null;
         startTime = System.currentTimeMillis();
 
+        // Create an empty entity
+        HttpEntity entity = new StringEntity("", ContentType.APPLICATION_OCTET_STREAM, false);
+        request.setEntity(entity);
+
         try {
             BasicResponseHandler brh = new BasicResponseHandler();
-            brh.setEncodeBodyAsBase64(integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_BASE64_BODY));
             executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());

@@ -36,13 +36,13 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 public class FileOperationsTest extends TestBase {
-    private Create pathCreate = new Create();
-    private Delete pathDelete = new Delete();
-    private GetProperties pathGetProperties = new GetProperties();
-    private Update pathUpdate = new Update();
-    private Rename pathRename = new Rename();
-    private List pathList = new List();
-    private Read pathRead = new Read();
+    private PathCreate pathCreate = new PathCreate();
+    private PathDelete pathDelete = new PathDelete();
+    private PathGetProperties pathGetProperties = new PathGetProperties();
+    private PathUpdate pathUpdate = new PathUpdate();
+    private PathRename pathRename = new PathRename();
+    private PathList pathList = new PathList();
+    private PathRead pathRead = new PathRead();
 
     // Files, will assume in the root directory.
     private String fileName1 = "example1.csv";

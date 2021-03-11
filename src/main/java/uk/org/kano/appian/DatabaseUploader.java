@@ -36,14 +36,18 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
-import uk.org.kano.appian.path.Create;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.org.kano.appian.path.PathCreate;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
@@ -58,7 +62,7 @@ import java.util.concurrent.*;
 @TemplateId(name="DatabaseUploader")
 @IntegrationTemplateType(IntegrationTemplateRequestPolicy.WRITE)
 public class DatabaseUploader extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseUploader.class);
     private static final String DEFAULT_JNDI_RESOURCE = "jdbc/Appian";
     private static final ContentType CSV_CONTENT_TYPE = ContentType.parse("text/csv;charset=utf8");
     private static final int FETCH_ROWS = 1000;
@@ -98,7 +102,7 @@ public class DatabaseUploader extends SimpleIntegrationTemplate {
         SimpleConfiguration subIntegrationConfiguration;
         IntegrationResponse subIntegrationResponse;
         IntegrationResponse executeResponse = null;
-        Create pathCreate = new Create();
+        PathCreate pathCreate = new PathCreate();
         CloseableHttpClient client = HttpUtils.getHttpClient(executionContext);
 
         URI resourceUri = HttpUtils.getBaseUri(connectedSystemConfiguration);

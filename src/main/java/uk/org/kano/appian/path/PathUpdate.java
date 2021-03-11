@@ -33,7 +33,8 @@ import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
@@ -50,8 +51,8 @@ import java.util.Map;
  */
 @TemplateId(name="PathUpdate")
 @IntegrationTemplateType(IntegrationTemplateRequestPolicy.WRITE)
-public class Update extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+public class PathUpdate extends SimpleIntegrationTemplate {
+    private static final Logger logger = LoggerFactory.getLogger(PathUpdate.class);
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
@@ -95,8 +96,8 @@ public class Update extends SimpleIntegrationTemplate {
         if(!path.startsWith("/")) path = "/" + path;
 
         // Get the file properties
-        GetProperties getProperties = new GetProperties();
-        IntegrationResponse propertiesResponse = getProperties.execute(integrationConfiguration, connectedSystemConfiguration, executionContext);
+        PathGetProperties pathGetProperties = new PathGetProperties();
+        IntegrationResponse propertiesResponse = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, executionContext);
         if (!propertiesResponse.isSuccess()) {
             return propertiesResponse;
         }

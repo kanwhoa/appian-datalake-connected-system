@@ -17,19 +17,33 @@
 
 package uk.org.kano.appian.filesystem;
 
+import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
 import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import org.junit.Test;
 import uk.org.kano.appian.TestBase;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
-public class GetPropertiesTest extends TestBase {
-    private GetProperties getProperties = new GetProperties();
+public class FileSystemListTest extends TestBase {
+    private FileSystemList fileSystemList = new FileSystemList();
 
     @Test
-    public void getPropertiesShouldReturnSuccess() {
-        IntegrationResponse response = getProperties.execute(null, connectedSystemConfiguration, null);
+    public void listShouldReturnSuccess() {
+        SimpleConfiguration integrationConfiguration;
+        Map<String, Object> values;
+        IntegrationResponse response;
+
+        integrationConfiguration = getIntegrationConfiguration(fileSystemList);
+        values = new HashMap<>();
+        setValues(integrationConfiguration, values);
+
+        response = fileSystemList.execute(integrationConfiguration, connectedSystemConfiguration, null);
         assertThat(response.isSuccess(), equalTo(true));
+        assertThat(response.getResult().get("body"), notNullValue());
     }
 }

@@ -15,7 +15,7 @@
  *
  */
 
-package uk.org.kano.appian.filesystem;
+package uk.org.kano.appian.path;
 
 import com.appian.connectedsystems.simplified.sdk.SimpleIntegrationTemplate;
 import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
@@ -26,11 +26,13 @@ import com.appian.connectedsystems.templateframework.sdk.configuration.PropertyP
 import com.appian.connectedsystems.templateframework.sdk.diagnostics.IntegrationDesignerDiagnostic;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateRequestPolicy;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateType;
-import org.apache.hc.client5.http.classic.methods.HttpHead;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.org.kano.appian.BasicResponseHandler;
+import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
 import uk.org.kano.appian.LogUtil;
 
@@ -39,14 +41,30 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-@TemplateId(name="FileSystemGetProperties")
-@IntegrationTemplateType(IntegrationTemplateRequestPolicy.READ)
-public class GetProperties extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+/**
+ * TODO: allow renames.
+ */
+@TemplateId(name="PathDelete")
+@IntegrationTemplateType(IntegrationTemplateRequestPolicy.WRITE)
+public class PathDelete extends SimpleIntegrationTemplate {
+    private static final Logger logger = LoggerFactory.getLogger(PathDelete.class);
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
-        return integrationConfiguration;
+        return integrationConfiguration.setProperties(
+                textProperty(Constants.SC_ATTR_PATH)
+                        .label("Path to delete")
+                        .description("The path to be delete.")
+                        .isRequired(true)
+                        .isExpressionable(true)
+                        .build(),
+                booleanProperty(Constants.SC_ATTR_RECURSIVE)
+                        .label("Delete recursively")
+                        .description("Delete all paths/files under the path. Default false.")
+                        .isRequired(false)
+                        .isExpressionable(true)
+                        .build()
+        );
     }
 
     @Override
@@ -60,17 +78,31 @@ public class GetProperties extends SimpleIntegrationTemplate {
         }
 
         URIBuilder uriBuilder = new URIBuilder(resourceUri);
+        boolean recursive = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_RECURSIVE);
+        String path = integrationConfiguration.getValue(Constants.SC_ATTR_PATH);
+        if (null == path || (path.startsWith("/") && path.length() < 2) || (!path.startsWith("/") && path.length() < 1)) {
+            return LogUtil.createError("Invalid path", "Invalid path specified");
+        }
+        if(!path.startsWith("/")) path = "/" + path;
+
+        // Create the URI
         try {
-            resourceUri = uriBuilder.addParameter("resource", "filesystem").build();
-        } catch (URISyntaxException ignored) {} // Should never happen
+            resourceUri = uriBuilder
+                    .setPath(uriBuilder.getPath() + path)
+                    .addParameter("recursive", Boolean.toString(recursive))
+                    .build();
+        } catch (URISyntaxException e) {
+            return LogUtil.createError("Invalid URI", e.getMessage());
+        }
 
         // Do the request
-        HttpHead request = new HttpHead(resourceUri);
+        HttpDelete request = new HttpDelete(resourceUri);
         IntegrationResponse executeResponse = null;
         startTime = System.currentTimeMillis();
 
         try {
             BasicResponseHandler brh = new BasicResponseHandler();
+            brh.setHandleMissingResourceAsError(false); // Allow for blind deletes
             executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());

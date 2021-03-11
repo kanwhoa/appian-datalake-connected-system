@@ -26,13 +26,11 @@ import com.appian.connectedsystems.templateframework.sdk.configuration.PropertyP
 import com.appian.connectedsystems.templateframework.sdk.diagnostics.IntegrationDesignerDiagnostic;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateRequestPolicy;
 import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTemplateType;
-import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.HttpEntity;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
@@ -41,42 +39,23 @@ import uk.org.kano.appian.LogUtil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * TODO: allow renames.
+ * Get the properties of a path
  */
-@TemplateId(name="PathCreate")
-@IntegrationTemplateType(IntegrationTemplateRequestPolicy.WRITE)
-public class Create extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+@TemplateId(name="PathGetProperties")
+@IntegrationTemplateType(IntegrationTemplateRequestPolicy.READ)
+public class PathGetProperties extends SimpleIntegrationTemplate {
+    private static final Logger logger = LoggerFactory.getLogger(PathGetProperties.class);
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
         return integrationConfiguration.setProperties(
                 textProperty(Constants.SC_ATTR_PATH)
-                        .label("Path to create")
-                        .description("The path to be created.")
+                        .label("Path to delete")
+                        .description("The path to be delete.")
                         .isRequired(true)
-                        .isExpressionable(true)
-                        .build(),
-                textProperty(Constants.SC_ATTR_MIME_TYPE)
-                        .label("Mime type")
-                        .description("Override the default mime type.")
-                        .isRequired(false)
-                        .isExpressionable(true)
-                        .build(),
-                booleanProperty(Constants.SC_ATTR_FILE)
-                        .label("Resource is a file")
-                        .description("If the resource a file, or a directory. Default is file.")
-                        .isRequired(false)
-                        .isExpressionable(true)
-                        .build(),
-                booleanProperty(Constants.SC_ATTR_OVERWRITE)
-                        .label("Overwrite")
-                        .description("If the resource exists, overwrite. Default is to overwrite.")
-                        .isRequired(false)
                         .isExpressionable(true)
                         .build()
         );
@@ -93,7 +72,6 @@ public class Create extends SimpleIntegrationTemplate {
         }
 
         URIBuilder uriBuilder = new URIBuilder(resourceUri);
-        boolean isFile = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_FILE);
         String path = integrationConfiguration.getValue(Constants.SC_ATTR_PATH);
         if (null == path || (path.startsWith("/") && path.length() < 2) || (!path.startsWith("/") && path.length() < 1)) {
             return LogUtil.createError("Invalid path", "Invalid path specified");
@@ -104,35 +82,19 @@ public class Create extends SimpleIntegrationTemplate {
         try {
             resourceUri = uriBuilder
                     .setPath(uriBuilder.getPath() + path)
-                    .addParameter("resource", isFile ? "file" : "directory")
                     .build();
         } catch (URISyntaxException e) {
             return LogUtil.createError("Invalid URI", e.getMessage());
         }
 
         // Do the request
-        HttpPut request = new HttpPut(resourceUri);
+        HttpHead request = new HttpHead(resourceUri);
         IntegrationResponse executeResponse = null;
         startTime = System.currentTimeMillis();
 
-        // Check if not to overwrite
-        boolean doOverwrite = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_OVERWRITE);
-        if (!doOverwrite) request.addHeader("If-None-Match", "\"*\"");
-
-        // Create an empty entity
-        String mimeType = integrationConfiguration.getValue(Constants.SC_ATTR_MIME_TYPE);
-        ContentType contentType;
-        if (null == mimeType || mimeType.isEmpty()) {
-            contentType = ContentType.APPLICATION_OCTET_STREAM;
-        } else {
-            contentType = ContentType.parse(mimeType);
-            if (null == contentType.getCharset()) contentType = contentType.withCharset(StandardCharsets.UTF_8);
-        }
-        HttpEntity entity = new StringEntity("", contentType, false);
-        request.setEntity(entity);
-
         try {
             BasicResponseHandler brh = new BasicResponseHandler();
+            brh.setHandleMissingResourceAsError(false);
             executeResponse = client.execute(request, brh);
         } catch (IOException e) {
             executeResponse = LogUtil.createError("Unable to execute request to " + resourceUri.toString(), e.getMessage());

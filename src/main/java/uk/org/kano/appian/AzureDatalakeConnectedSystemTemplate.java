@@ -23,12 +23,13 @@ import com.appian.connectedsystems.templateframework.sdk.ExecutionContext;
 import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import com.appian.connectedsystems.templateframework.sdk.TemplateId;
 import com.appian.connectedsystems.templateframework.sdk.connectiontesting.TestConnectionResult;
-import org.apache.log4j.Logger;
-import uk.org.kano.appian.filesystem.GetProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.org.kano.appian.filesystem.FileSystemGetProperties;
 
 @TemplateId(name="AzureDatalakeConnectedSystemTemplate")
 public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnectedSystemTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+    private static final Logger logger = LoggerFactory.getLogger(AzureDatalakeConnectedSystemTemplate.class);
     static String CS_ADLS_G2_ACCOUNT_NAME = "accountName";
     static String CS_ADLS_G2_ACCOUNT_KEY = "accountKey";
     static String CS_ADLS_G2_FILESYSTEM = "fileSystem";
@@ -73,13 +74,21 @@ public class AzureDatalakeConnectedSystemTemplate extends SimpleTestableConnecte
     @Override
     protected TestConnectionResult testConnection(SimpleConfiguration configuration, ExecutionContext executionContext) {
         logger.info("Starting connection test");
-        GetProperties getProperties = new GetProperties();
-        IntegrationResponse response = getProperties.execute(configuration.toConfiguration(), configuration.toConfiguration(), executionContext);
+        FileSystemGetProperties fileSystemGetProperties = new FileSystemGetProperties();
+        IntegrationResponse response;
+        try {
+            response = fileSystemGetProperties.execute(configuration.toConfiguration(), configuration.toConfiguration(), executionContext);
+        } catch (Exception e) {
+            logger.error("Connection test failed", e);
+            return TestConnectionResult.error(e.getMessage());
+        }
+
+        // Parse the response
         if (response.isSuccess()) {
             logger.info("Connection test successful");
             return TestConnectionResult.success();
         } else {
-            logger.error("Connection test failure");
+            logger.error("Connection test failure: " + response.getError().getDetail());
             return TestConnectionResult.error(response.getError().getDetail());
         }
     }

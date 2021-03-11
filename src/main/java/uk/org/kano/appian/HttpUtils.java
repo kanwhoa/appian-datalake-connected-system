@@ -27,7 +27,8 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,7 +38,7 @@ import java.net.URISyntaxException;
  * A set of HTTP utilities to do authentication and such
  */
 public class HttpUtils {
-    private static Logger logger = Logger.getLogger(HttpUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(HttpUtils.class);
 
     // The signing request interceptor
     private static SigningHttpRequestInterceptor signingHttpRequestInterceptor = new SigningHttpRequestInterceptor();
@@ -53,6 +54,7 @@ public class HttpUtils {
         BasicCredentialsProvider proxyCredentials = null;
 
         if (null != executionContext && null != executionContext.getProxyConfigurationData()) {
+            logger.info("Proxy detected, adding configuration");
             ProxyConfigurationData proxyConfigurationData = executionContext.getProxyConfigurationData();
 
             proxyHost = new HttpHost(proxyConfigurationData.getHost(), proxyConfigurationData.getPort());
@@ -83,7 +85,7 @@ public class HttpUtils {
                     .setHost(configuration.getValue(AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_ACCOUNT_NAME) + AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_DOMAINNAME)
                     .setPath(configuration.getValue(AzureDatalakeConnectedSystemTemplate.CS_ADLS_G2_FILESYSTEM))
                     .build();
-            logger.info("Using datalake at URL " + location.toString());
+            logger.info("Using datalake at URL {}", location.toString());
             return location;
         } catch (IOException | URISyntaxException e) {
             logger.error("Unable to build URL", e);

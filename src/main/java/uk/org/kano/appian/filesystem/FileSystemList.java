@@ -15,7 +15,7 @@
  *
  */
 
-package uk.org.kano.appian.path;
+package uk.org.kano.appian.filesystem;
 
 import com.appian.connectedsystems.simplified.sdk.SimpleIntegrationTemplate;
 import com.appian.connectedsystems.simplified.sdk.configuration.SimpleConfiguration;
@@ -29,7 +29,8 @@ import com.appian.connectedsystems.templateframework.sdk.metadata.IntegrationTem
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.org.kano.appian.BasicResponseHandler;
 import uk.org.kano.appian.Constants;
 import uk.org.kano.appian.HttpUtils;
@@ -40,29 +41,19 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-/**
- * Get the properties of a path
- */
-@TemplateId(name="PathRead")
+@TemplateId(name="FileSystemList")
 @IntegrationTemplateType(IntegrationTemplateRequestPolicy.READ)
-public class Read extends SimpleIntegrationTemplate {
-    private Logger logger = Logger.getLogger(this.getClass());
+public class FileSystemList extends SimpleIntegrationTemplate {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemList.class);
 
     @Override
     protected SimpleConfiguration getConfiguration(SimpleConfiguration integrationConfiguration, SimpleConfiguration connectedSystemConfiguration, PropertyPath updatedProperty, ExecutionContext executionContext) {
-        return integrationConfiguration.setProperties(
-                textProperty(Constants.SC_ATTR_PATH)
-                        .label("Path")
-                        .description("The path to list the contents of.")
-                        .isRequired(true)
-                        .isExpressionable(true)
-                        .build(),
-                booleanProperty(Constants.SC_ATTR_BASE64_BODY)
-                        .label("Base64 body")
-                        .description("Return the body as a base64 encoded value.")
-                        .isRequired(false)
-                        .isExpressionable(true)
-                        .build()
+        return integrationConfiguration.setProperties(booleanProperty(Constants.SC_ATTR_BASE64_BODY)
+                .label("Base64 body")
+                .description("Return the body as a base64 encoded value.")
+                .isRequired(false)
+                .isExpressionable(true)
+                .build()
         );
     }
 
@@ -77,20 +68,11 @@ public class Read extends SimpleIntegrationTemplate {
         }
 
         URIBuilder uriBuilder = new URIBuilder(resourceUri);
-        String path = integrationConfiguration.getValue(Constants.SC_ATTR_PATH);
-        if (null == path || (path.startsWith("/") && path.length() < 2) || (!path.startsWith("/") && path.length() < 1)) {
-            return LogUtil.createError("Invalid path", "Invalid path specified");
-        }
-        if(!path.startsWith("/")) path = "/" + path;
-
-        // Create the URI
         try {
             resourceUri = uriBuilder
-                    .setPath(uriBuilder.getPath() + path)
-                    .build();
-        } catch (URISyntaxException e) {
-            return LogUtil.createError("Invalid URI", e.getMessage());
-        }
+                    .setPath("/")
+                    .addParameter("resource", "account").build();
+        } catch (URISyntaxException ignored) {} // Should never happen
 
         // Do the request
         HttpGet request = new HttpGet(resourceUri);

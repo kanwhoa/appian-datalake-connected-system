@@ -21,7 +21,8 @@ import com.appian.connectedsystems.templateframework.sdk.IntegrationResponse;
 import com.appian.connectedsystems.templateframework.sdk.diagnostics.IntegrationDesignerDiagnostic;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,7 +38,7 @@ import java.util.Map;
  * The basic response handler
  */
 public class BasicResponseHandler implements HttpClientResponseHandler<IntegrationResponse> {
-    private static Logger logger = Logger.getLogger(BasicResponseHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(BasicResponseHandler.class);
     private boolean missingResourceIsError = true;
     private boolean encodeBodyAsBase64 = false;
 
