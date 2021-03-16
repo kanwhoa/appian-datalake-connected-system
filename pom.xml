@@ -21,7 +21,7 @@
 
     <groupId>uk.org.kano.appian</groupId>
     <artifactId>azure-datalake-cst</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <name>Azure ADLS Gen2 Connected System</name>

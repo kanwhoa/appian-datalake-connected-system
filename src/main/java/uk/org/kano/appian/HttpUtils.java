@@ -52,16 +52,31 @@ public class HttpUtils {
     public static CloseableHttpClient getHttpClient(ExecutionContext executionContext) {
         HttpHost proxyHost = null;
         BasicCredentialsProvider proxyCredentials = null;
+        ProxyConfigurationData proxyConfigurationData = null;
 
-        if (null != executionContext && null != executionContext.getProxyConfigurationData()) {
-            logger.info("Proxy detected, adding configuration");
-            ProxyConfigurationData proxyConfigurationData = executionContext.getProxyConfigurationData();
+        if (null != executionContext) proxyConfigurationData = executionContext.getProxyConfigurationData();
 
-            proxyHost = new HttpHost(proxyConfigurationData.getHost(), proxyConfigurationData.getPort());
-            proxyCredentials = new BasicCredentialsProvider();
-            proxyCredentials.setCredentials(
-                    new AuthScope(proxyHost),
-                    new UsernamePasswordCredentials(proxyConfigurationData.getUsername(), proxyConfigurationData.getPassword().toCharArray()));
+        if (null != proxyConfigurationData && proxyConfigurationData.isEnabled()) {
+            String ph = proxyConfigurationData.getHost();
+            int pp = proxyConfigurationData.getPort();
+            if (null != ph) ph = ph.trim();
+
+            if (null != ph && !ph.isEmpty() && pp > 0) {
+                logger.debug("Proxy settings detected, adding configuration to {}:{}", ph, pp);
+                proxyHost = new HttpHost(proxyConfigurationData.getHost(), proxyConfigurationData.getPort());
+
+                String puser = proxyConfigurationData.getUsername();
+                String ppass = proxyConfigurationData.getPassword();
+                if (null != puser) puser = puser.trim();
+                if (null != ppass) ppass = ppass.trim();
+
+                // Only add if there's a valid username and password.
+                if (null != puser && !puser.isEmpty() && null != ppass && !ppass.isEmpty()) {
+                    logger.debug("Proxy credentials detected, adding configuration");
+                    proxyCredentials = new BasicCredentialsProvider();
+                    proxyCredentials.setCredentials(new AuthScope(proxyHost), new UsernamePasswordCredentials(proxyConfigurationData.getUsername(), proxyConfigurationData.getPassword().toCharArray()));
+                }
+            }
         }
         return HttpClients.custom()
                 .addRequestInterceptorLast(signingHttpRequestInterceptor)
