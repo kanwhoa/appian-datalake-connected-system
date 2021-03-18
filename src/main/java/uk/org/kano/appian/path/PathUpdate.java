@@ -101,6 +101,9 @@ public class PathUpdate extends SimpleIntegrationTemplate {
         if (!propertiesResponse.isSuccess()) {
             return propertiesResponse;
         }
+        if (!Boolean.TRUE.equals(propertiesResponse.getResult().get("exists"))) {
+            return LogUtil.createError("Invalid Path", "Path does not exist, create first");
+        }
 
         // If appending data, then get the length of the file and set the file to the end of the stream.
         boolean overwrite = integrationConfiguration.<Boolean>getValue(Constants.SC_ATTR_OVERWRITE);

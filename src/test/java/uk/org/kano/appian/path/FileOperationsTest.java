@@ -268,4 +268,34 @@ public class FileOperationsTest extends TestBase {
                 )
         );
     }
+
+    @Test
+    public void whenUploadingToNonExistentFile_thenError() {
+        SimpleConfiguration integrationConfiguration;
+        IntegrationResponse response;
+        Map<String, Object> values;
+
+        // Verify the path does not exist
+        integrationConfiguration = getIntegrationConfiguration(pathGetProperties);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        setValues(integrationConfiguration, values);
+
+        response = pathGetProperties.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(true));
+        assertThat(Boolean.parseBoolean(response.getResult().get("exists").toString()), equalTo(false));
+
+        // Create the upload
+        String data1 = "\"Column 1\"\n\"Example data\"\n";
+        int data1Len = data1.getBytes(StandardCharsets.UTF_8).length;
+        integrationConfiguration = getIntegrationConfiguration(pathUpdate);
+        values = new HashMap<>();
+        values.put(Constants.SC_ATTR_PATH, fileName1);
+        values.put(Constants.SC_ATTR_OVERWRITE, true);
+        values.put(Constants.SC_ATTR_CONTENT, data1);
+        setValues(integrationConfiguration, values);
+
+        response = pathUpdate.execute(integrationConfiguration, connectedSystemConfiguration, null);
+        assertThat(response.isSuccess(), equalTo(false));
+    }
 }
